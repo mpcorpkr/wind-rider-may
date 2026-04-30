@@ -6,7 +6,7 @@
 <title>바람의 라이더 5월 라이딩 챌린지</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg-primary: #ffffff;
@@ -50,11 +50,11 @@
 
   /* 헤더 */
   .header {
-    margin-bottom: 14px;
+    margin-bottom: 18px;
     text-align: center;
-    padding: 16px 14px;
+    padding: 28px 20px;
     background: linear-gradient(135deg, #0066ff 0%, #00b8ff 100%);
-    border-radius: 16px;
+    border-radius: 18px;
     box-shadow: var(--shadow-md);
     position: relative;
     overflow: hidden;
@@ -74,27 +74,27 @@
   .header-tag {
     display: inline-block;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 11px;
-    letter-spacing: 2.5px;
+    font-size: 18px;
+    letter-spacing: 4px;
     color: white;
     background: rgba(255,255,255,0.25);
     backdrop-filter: blur(10px);
-    padding: 3px 10px;
+    padding: 6px 18px;
     border-radius: 20px;
-    margin-bottom: 6px;
+    margin-bottom: 16px;
     font-weight: 700;
     position: relative;
     z-index: 1;
   }
 
   .header h1 {
-    font-family: 'Black Han Sans', sans-serif;
-    font-size: 28px;
+    font-family: 'Do Hyeon', sans-serif;
+    font-size: 56px;
     line-height: 1;
     letter-spacing: -1px;
-    margin-bottom: 4px;
+    margin-bottom: 0;
     color: white;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    text-shadow: 0 4px 12px rgba(0,0,0,0.2);
     position: relative;
     z-index: 1;
   }
@@ -630,7 +630,6 @@
   <div class="header">
     <span class="header-tag">MAY 2026 CHALLENGE</span>
     <h1>바람의 라이더</h1>
-    <h2>🚴 내가 제일 잘 나가 🚴</h2>
   </div>
 
   <!-- 탭 -->
@@ -798,9 +797,54 @@
     setTimeout(() => toast.className = 'toast', 3000);
   }
 
-  // 닉네임 정규화: 양쪽 공백 제거 + 연속 공백을 단일 공백으로
+  // 닉네임 정규화: 모든 위험 케이스 처리
   function normalizeNickname(nick) {
-    return nick.trim().replace(/\s+/g, ' ');
+    if (!nick) return '';
+    
+    let s = String(nick);
+    
+    // 1. 유니코드 NFC 정규화 (자모 분리 → 결합)
+    try { s = s.normalize('NFC'); } catch (e) {}
+    
+    // 2. 보이지 않는 문자 제거 (제로폭, BOM, 양방향 컨트롤 등)
+    s = s.replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF\u00AD\u061C]/g, '');
+    
+    // 3. 컨트롤 캐릭터 제거 (NULL, CR, LF, 벨 등)
+    s = s.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+    
+    // 4. 모든 종류의 공백을 표준 공백으로 통일 (NBSP, 전각공백 등)
+    s = s.replace(/[\s\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, ' ');
+    
+    // 5. 양쪽 공백 제거 + 연속 공백 단일화
+    s = s.trim().replace(/\s+/g, ' ');
+    
+    return s;
+  }
+
+  // 닉네임 검증 (반환: {ok, reason})
+  function validateNicknameStrict(rawInput) {
+    const nick = normalizeNickname(rawInput);
+    
+    if (!nick) return { ok: false, reason: '닉네임을 입력해 주세요' };
+    if (nick.length < 2) return { ok: false, reason: '닉네임은 2자 이상 입력해 주세요' };
+    if (nick.length > 20) return { ok: false, reason: '닉네임은 20자 이하로 입력해 주세요' };
+    
+    // 특수문자 차단
+    if (/["'<>{}\\]/.test(nick)) {
+      return { ok: false, reason: '닉네임에 특수문자(" \' < > 등)는 사용 불가' };
+    }
+    
+    // 메달/트로피 이모지 차단 (순위 사칭 방지)
+    if (/[\u{1F947}-\u{1F949}\u{1F3C6}\u{1F451}\u{1F3C5}]/u.test(nick)) {
+      return { ok: false, reason: '메달·트로피 이모지(🥇🥈🥉🏆)는 사용 불가' };
+    }
+    
+    // 한글/영문/숫자 중 하나 이상 포함 (이모지·특문만 입력 차단)
+    if (!/[\uAC00-\uD7AF\u3131-\u318Ea-zA-Z0-9]/.test(nick)) {
+      return { ok: false, reason: '한글·영문·숫자 중 하나 이상 포함해 주세요' };
+    }
+    
+    return { ok: true, normalized: nick };
   }
 
   // JSONP 방식 호출 (CORS 우회 + 응답 확인 가능)
@@ -836,29 +880,21 @@
   }
 
   // 점수 등록
+  let isSubmitting = false;  // 더블클릭 방지
   async function submitScore() {
-    let nickname = document.getElementById('nickname').value;
-    nickname = normalizeNickname(nickname);
+    if (isSubmitting) return;  // 이미 등록 중이면 차단
+    
+    const rawNickname = document.getElementById('nickname').value;
     const date = document.getElementById('ride-date').value;
 
-    // 닉네임 검증
-    if (!nickname) {
-      showToast('닉네임을 입력해 주세요', true);
+    // 강화된 닉네임 검증
+    const validation = validateNicknameStrict(rawNickname);
+    if (!validation.ok) {
+      showToast(validation.reason, true);
       return;
     }
-    if (nickname.length < 2) {
-      showToast('닉네임은 2자 이상 입력해 주세요', true);
-      return;
-    }
-    if (nickname.length > 20) {
-      showToast('닉네임은 20자 이하로 입력해 주세요', true);
-      return;
-    }
-    // 따옴표·꺽쇠 등 특수문자 차단
-    if (/["'<>{}\\]/.test(nickname)) {
-      showToast('닉네임에 특수문자(" \' < > 등)는 사용 불가', true);
-      return;
-    }
+    const nickname = validation.normalized;
+
     if (!selectedType) {
       showToast('라이딩 종류를 선택해 주세요', true);
       return;
@@ -877,6 +913,7 @@
     if (!confirm(confirmMsg)) return;
 
     const btn = document.getElementById('submit-btn');
+    isSubmitting = true;
     btn.disabled = true;
     btn.textContent = '⏳ 등록 중...';
 
@@ -908,6 +945,7 @@
     } catch (err) {
       showToast('등록 실패. 인터넷 연결 확인 후 다시 시도해 주세요', true);
     } finally {
+      isSubmitting = false;
       btn.disabled = false;
       btn.textContent = '🚴 점수 등록하기';
     }
