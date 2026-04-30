@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>바람의 라이더 5월 라이딩 챌린지</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -477,6 +480,161 @@
   }
 
   /* 내 기록 */
+  .search-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .search-input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .search-btn {
+    padding: 0 18px;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-sky));
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0,102,255,0.25);
+  }
+
+  .search-btn:active {
+    transform: scale(0.96);
+  }
+
+  .search-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* 순위 상승 코칭 박스 */
+  .coaching-box {
+    margin-top: 16px;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(255,212,0,0.10), rgba(255,107,0,0.05));
+    border: 1px solid rgba(255,170,0,0.3);
+    border-radius: 14px;
+  }
+
+  .coaching-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 16px;
+    color: #d4a000;
+    margin-bottom: 12px;
+    letter-spacing: 0.3px;
+  }
+
+  .coaching-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .coaching-item {
+    background: white;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .coaching-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .coaching-label {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .coaching-gap {
+    font-size: 11px;
+    color: var(--accent-pink);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .coaching-combo {
+    font-size: 13px;
+    color: var(--accent-blue);
+    font-weight: 600;
+    line-height: 1.5;
+    margin-bottom: 4px;
+  }
+
+  .coaching-rides {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  /* 매니저 사인 */
+  .coaching-signature {
+    text-align: right;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(255,170,0,0.3);
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-style: italic;
+    letter-spacing: 0.3px;
+  }
+
+  /* 기록 없을 때 - 익살스러운 빈 상태 박스 */
+  .empty-coaching {
+    margin-top: 8px;
+    padding: 24px 20px;
+    background: linear-gradient(135deg, rgba(255,107,0,0.08), rgba(255,45,111,0.05));
+    border: 1px solid rgba(255,107,0,0.25);
+    border-radius: 14px;
+    text-align: center;
+  }
+
+  .empty-coaching-icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+    animation: wiggle 2s ease-in-out infinite;
+  }
+
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-8deg); }
+    75% { transform: rotate(8deg); }
+  }
+
+  .empty-coaching-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 20px;
+    color: var(--accent-pink);
+    margin-bottom: 12px;
+    letter-spacing: 0.3px;
+  }
+
+  .empty-coaching-body {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.7;
+    margin-bottom: 0;
+  }
+
+  .empty-coaching-body strong {
+    color: var(--accent-pink);
+    font-size: 15px;
+  }
+
+  .empty-coaching .coaching-signature {
+    border-top-color: rgba(255,107,0,0.3);
+  }
+
   .history-item {
     display: grid;
     grid-template-columns: auto 1fr auto;
@@ -721,8 +879,9 @@
 
     <div class="card">
       <h3 class="card-title">내 기록</h3>
-      <div class="input-group" style="margin-bottom:16px">
-        <input type="text" class="text-input" id="search-nick" placeholder="닉네임 입력하면 내 이력이 보여요">
+      <div class="search-group">
+        <input type="text" class="text-input search-input" id="search-nick" placeholder="닉네임을 입력하세요" maxlength="20">
+        <button class="search-btn" id="search-btn" onclick="searchMyRecords()">🔍 검색</button>
       </div>
       <div class="stat-row" id="my-stats" style="display:none">
         <div class="stat-box">
@@ -756,7 +915,17 @@
   // 챌린지 기간
   const CHALLENGE_START = '2026-05-01';
   const CHALLENGE_END = '2026-05-31';
-  const today = new Date().toISOString().split('T')[0];
+  
+  // 로컬 시간 기준 YYYY-MM-DD (toISOString의 UTC 변환 함정 회피)
+  function getLocalDateString(date) {
+    const d = date || new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  
+  const today = getLocalDateString();
   let defaultDate;
   if (today < CHALLENGE_START) {
     defaultDate = CHALLENGE_START;
@@ -765,7 +934,46 @@
   } else {
     defaultDate = today;
   }
-  document.getElementById('ride-date').value = defaultDate;
+  
+  // 날짜 input의 max를 "오늘"로 제한 (미래 날짜 캘린더 선택 차단)
+  // 단, 오늘이 챌린지 종료 후라면 5/31로 제한
+  const dateInputEl = document.getElementById('ride-date');
+  dateInputEl.value = defaultDate;
+  // max 속성은 챌린지 종료일과 오늘 중 작은 값
+  const maxAllowedDate = today < CHALLENGE_END ? today : CHALLENGE_END;
+  if (today >= CHALLENGE_START) {
+    dateInputEl.setAttribute('max', maxAllowedDate);
+  }
+  
+  // 챌린지 기간 상태 확인 + 화면 안내
+  function checkChallengePeriod() {
+    const today = getLocalDateString();
+    if (today < CHALLENGE_START) {
+      // 아직 시작 전
+      const submitBtn = document.getElementById('submit-btn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ 5/1부터 입력 가능';
+        submitBtn.style.opacity = '0.5';
+      }
+    } else if (today > CHALLENGE_END) {
+      // 종료 후
+      const submitBtn = document.getElementById('submit-btn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '🔒 챌린지 종료';
+        submitBtn.style.opacity = '0.5';
+      }
+      // 입력 폼도 비활성화
+      const nick = document.getElementById('nickname');
+      const dateInput = document.getElementById('ride-date');
+      if (nick) nick.disabled = true;
+      if (dateInput) dateInput.disabled = true;
+      document.querySelectorAll('.score-btn').forEach(b => b.disabled = true);
+    }
+  }
+  
+  checkChallengePeriod();
 
   // 점수 버튼 선택
   let selectedType = null;
@@ -818,6 +1026,9 @@
     // 5. 양쪽 공백 제거 + 연속 공백 단일화
     s = s.trim().replace(/\s+/g, ' ');
     
+    // 6. 끝에 붙은 마침표·구두점 자동 제거 (iOS 자동완성 대응)
+    s = s.replace(/[.。、,，;；:：!！?？]+$/g, '').trim();
+    
     return s;
   }
 
@@ -848,32 +1059,43 @@
   }
 
   // JSONP 방식 호출 (CORS 우회 + 응답 확인 가능)
+  let jsonpCounter = 0;
   function jsonpCall(url, callbackName) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      const cbName = callbackName + '_' + Date.now();
+      // 충돌 방지: 타임스탬프 + 카운터 + 랜덤
+      jsonpCounter++;
+      const cbName = callbackName + '_' + Date.now() + '_' + jsonpCounter + '_' + Math.floor(Math.random() * 1000000);
+      
+      let resolved = false;
       
       window[cbName] = function(data) {
+        if (resolved) return;
+        resolved = true;
         resolve(data);
         delete window[cbName];
-        script.remove();
+        if (script.parentNode) script.remove();
       };
 
       script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
       script.onerror = () => {
+        if (resolved) return;
+        resolved = true;
         reject(new Error('네트워크 오류'));
         delete window[cbName];
-        script.remove();
+        if (script.parentNode) script.remove();
       };
       
-      // 타임아웃 (10초)
+      // 타임아웃 (15초)
       setTimeout(() => {
+        if (resolved) return;
         if (window[cbName]) {
+          resolved = true;
           reject(new Error('서버 응답 없음'));
           delete window[cbName];
-          script.remove();
+          if (script.parentNode) script.remove();
         }
-      }, 10000);
+      }, 15000);
 
       document.body.appendChild(script);
     });
@@ -887,7 +1109,7 @@
     const rawNickname = document.getElementById('nickname').value;
     const date = document.getElementById('ride-date').value;
 
-    // 강화된 닉네임 검증
+    // === 필수 입력 검증 (1단계: 닉네임) ===
     const validation = validateNicknameStrict(rawNickname);
     if (!validation.ok) {
       showToast(validation.reason, true);
@@ -895,16 +1117,38 @@
     }
     const nickname = validation.normalized;
 
+    // === 필수 입력 검증 (2단계: 라이딩 종류) ===
     if (!selectedType) {
       showToast('라이딩 종류를 선택해 주세요', true);
       return;
     }
+
+    // === 필수 입력 검증 (3단계: 라이딩 날짜) ===
     if (!date) {
-      showToast('날짜를 입력해 주세요', true);
+      showToast('라이딩 날짜를 선택해 주세요', true);
       return;
     }
+    
+    // === 날짜 범위 검증 ===
     if (date < CHALLENGE_START || date > CHALLENGE_END) {
       showToast('챌린지 기간(5/1~5/31)만 입력 가능합니다', true);
+      return;
+    }
+    
+    // === 챌린지 진행 상태 검증 (KST 기준) ===
+    const todayKST = getLocalDateString();
+    if (todayKST < CHALLENGE_START) {
+      showToast('챌린지가 아직 시작되지 않았습니다 (5/1 시작)', true);
+      return;
+    }
+    if (todayKST > CHALLENGE_END) {
+      showToast('챌린지가 종료되어 입력이 불가합니다 (5/31 마감)', true);
+      return;
+    }
+    
+    // === 미래 날짜 차단 (오늘보다 늦은 날짜 입력 불가) ===
+    if (date > todayKST) {
+      showToast(`미래 날짜는 입력 불가 (오늘: ${todayKST})`, true);
       return;
     }
 
@@ -1017,22 +1261,59 @@
     list.innerHTML = html + summary;
   }
 
-  // 내 기록 검색
-  document.getElementById('search-nick').addEventListener('input', debounce(async (e) => {
-    const nick = normalizeNickname(e.target.value);
+  // 내 기록 검색 (검색 버튼 클릭 시에만 실행)
+  let isSearching = false;
+  async function searchMyRecords() {
+    if (isSearching) return;
+    
+    const rawNick = document.getElementById('search-nick').value;
+    const nick = normalizeNickname(rawNick);
+    
+    // 빈 입력 체크
     if (!nick) {
+      showToast('닉네임을 입력해 주세요', true);
       document.getElementById('my-stats').style.display = 'none';
       document.getElementById('my-history').innerHTML = '';
       return;
     }
+    if (nick.length < 2) {
+      showToast('닉네임은 2자 이상 입력해 주세요', true);
+      return;
+    }
+    
+    const btn = document.getElementById('search-btn');
+    isSearching = true;
+    btn.disabled = true;
+    btn.textContent = '⏳ 검색 중...';
+    
     try {
       const data = await jsonpCall(APPS_SCRIPT_URL + '?action=mine&nickname=' + encodeURIComponent(nick), 'mineCb');
       renderMyHistory(data, nick);
     } catch (err) {
       document.getElementById('my-stats').style.display = 'none';
       document.getElementById('my-history').innerHTML = '<div class="empty-state" style="padding:20px"><div>조회 실패. 잠시 후 다시 시도</div></div>';
+    } finally {
+      isSearching = false;
+      btn.disabled = false;
+      btn.textContent = '🔍 검색';
     }
-  }, 500));
+  }
+  
+  // 엔터키로도 검색 가능
+  document.getElementById('search-nick').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      searchMyRecords();
+    }
+  });
+  
+  // 검색칸 비우면 결과도 자동 초기화
+  document.getElementById('search-nick').addEventListener('input', (e) => {
+    if (!e.target.value.trim()) {
+      document.getElementById('my-stats').style.display = 'none';
+      document.getElementById('my-history').innerHTML = '';
+    }
+  });
 
   function renderMyHistory(data, nick) {
     const stats = document.getElementById('my-stats');
@@ -1040,7 +1321,19 @@
 
     if (!data || !data.records || data.records.length === 0) {
       stats.style.display = 'none';
-      hist.innerHTML = '<div class="empty-state" style="padding:20px"><div>등록된 기록이 없습니다</div></div>';
+      hist.innerHTML = `
+        <div class="empty-coaching">
+          <div class="empty-coaching-icon">😅</div>
+          <div class="empty-coaching-title">${escapeHtml(nick)}님...</div>
+          <div class="empty-coaching-body">
+            설마 본인 닉네임 잘못 쓰신 건 아니죠?<br>
+            아니면... 진짜 한 번도 안 타셨나요? 😱<br><br>
+            <strong>페이지가 외로워해요 🥲</strong><br><br>
+            빨리 라이딩 한 번 다녀오세용~ 🚴
+          </div>
+          <div class="coaching-signature">— 스틸 매니저 올림 🚴‍♂️</div>
+        </div>
+      `;
       return;
     }
 
@@ -1049,18 +1342,155 @@
     document.getElementById('stat-count').textContent = data.records.length;
     document.getElementById('stat-rank').textContent = data.rank ? data.rank + '위' : '-';
 
-    hist.innerHTML = data.records.map(r => `
+    // 라이딩 이력 렌더링
+    const historyHtml = data.records.map(r => `
       <div class="history-item">
         <div class="history-date">${formatDate(r.date)}</div>
         <div class="history-type">${escapeHtml(r.type)}</div>
         <div class="history-points">+${r.points}</div>
       </div>
     `).join('');
+
+    // 순위 상승 코칭 (순위 데이터 + 랭킹 정보 모두 있을 때)
+    let coachingHtml = '';
+    if (data.rank && data.ranking && data.ranking.length > 0) {
+      coachingHtml = renderCoaching(nick, data.total, data.rank, data.ranking);
+    }
+
+    hist.innerHTML = historyHtml + coachingHtml;
+  }
+
+  /**
+   * 순위 상승 코칭 - 다음 순위와 1위 따라잡는 방법 제안
+   */
+  function renderCoaching(nick, currentTotal, currentRank, ranking) {
+    // 1위인 경우
+    if (currentRank === 1) {
+      return `
+        <div class="coaching-box">
+          <div class="coaching-title">🏆 ${escapeHtml(nick)}님은 현재 1위입니다!</div>
+          <div class="coaching-subtitle">정상을 지키세요 💪 라이딩 멈추면 누군가 따라옵니다!</div>
+          <div class="coaching-signature">— 스틸 매니저 올림 🚴‍♂️</div>
+        </div>
+      `;
+    }
+
+    // 다음 순위 사람 정보
+    const nextRankItem = ranking[currentRank - 2];  // currentRank-1번째 인덱스 = 한 단계 위
+    const firstRankItem = ranking[0];
+
+    let suggestions = [];
+
+    // 다음 순위 따라잡기
+    if (nextRankItem) {
+      const gap = nextRankItem.total - currentTotal + 0.5;  // +0.5로 명확히 추월
+      const combo = findOptimalCombo(gap);
+      if (combo) {
+        suggestions.push({
+          label: `🥈 ${escapeHtml(nextRankItem.nickname)}님(${currentRank - 1}위) 추월하기`,
+          gap: gap.toFixed(1),
+          combo: comboToString(combo),
+          rides: combo.totalRides
+        });
+      }
+    }
+
+    // 1위 따라잡기 (다음 순위와 다른 경우만)
+    if (firstRankItem && currentRank > 2) {
+      const gap = firstRankItem.total - currentTotal + 0.5;
+      const combo = findOptimalCombo(gap);
+      if (combo) {
+        suggestions.push({
+          label: `🥇 ${escapeHtml(firstRankItem.nickname)}님(1위) 추월하기`,
+          gap: gap.toFixed(1),
+          combo: comboToString(combo),
+          rides: combo.totalRides
+        });
+      }
+    }
+
+    if (suggestions.length === 0) return '';
+
+    return `
+      <div class="coaching-box">
+        <div class="coaching-title">💡 ${escapeHtml(nick)}님 순위 올리는 방법</div>
+        ${suggestions.map(s => `
+          <div class="coaching-item">
+            <div class="coaching-label">${s.label}</div>
+            <div class="coaching-gap">${s.gap}점 더 필요</div>
+            <div class="coaching-combo">👉 ${s.combo}</div>
+            <div class="coaching-rides">총 ${s.rides}회 라이딩이면 충분!</div>
+          </div>
+        `).join('')}
+        <div class="coaching-signature">— 스틸 매니저 올림 🚴‍♂️</div>
+      </div>
+    `;
+  }
+
+  /**
+   * 목표 점수 도달을 위한 최적 라이딩 조합 찾기 (그리디 알고리즘)
+   * 점수 높은 라이딩(주라 Long, 2점)부터 채우고, 잔여 점수를 처리
+   * - 0점 또는 음수: null
+   * - 0.5점 단위로 처리
+   */
+  function findOptimalCombo(gap) {
+    if (gap <= 0) return null;
+    
+    // 0.5점 단위로 올림
+    const targetGap = Math.ceil(gap * 2) / 2;
+    
+    // 주라 Long(2점) 최대 사용
+    const longCount = Math.floor(targetGap / 2.0);
+    const remainder = Math.round((targetGap - longCount * 2.0) * 10) / 10;
+    
+    let combo = { 새라: 0, 야라: 0, 주라Short: 0, 주라Long: longCount };
+    
+    // 잔여 점수 처리 (0, 0.5, 1.0, 1.5)
+    if (remainder === 0) {
+      // 정확히 떨어짐
+    } else if (remainder === 1.5) {
+      // 1.5점 부족: 주라 Short 또는 야라 1회 (둘 다 1.5점이라 동일하지만 매일 가능한 주라 우선)
+      combo.주라Short = 1;
+    } else if (remainder === 1.0) {
+      // 1점 부족: 새라 1회
+      combo.새라 = 1;
+    } else if (remainder === 0.5) {
+      // 0.5점 부족: 새라 1회로 처리 (0.5점 초과되지만 가장 적은 라이딩)
+      combo.새라 = 1;
+    }
+    
+    const totalRides = combo.새라 + combo.야라 + combo.주라Short + combo.주라Long;
+    const totalPoints = combo.새라 * 1.0 + combo.야라 * 1.5 + combo.주라Short * 1.5 + combo.주라Long * 2.0;
+    
+    return { ...combo, totalRides, totalPoints };
+  }
+
+  /**
+   * 조합을 사람이 읽기 좋은 한국어 문장으로 변환
+   */
+  function comboToString(combo) {
+    const parts = [];
+    if (combo.주라Long > 0)  parts.push(`주라 100km↑ ${combo.주라Long}회`);
+    if (combo.주라Short > 0) parts.push(`주라 100km미만 ${combo.주라Short}회`);
+    if (combo.야라 > 0)      parts.push(`야라(화·목) ${combo.야라}회`);
+    if (combo.새라 > 0)      parts.push(`새라(평일) ${combo.새라}회`);
+    return parts.join(' + ');
   }
 
   function formatDate(d) {
+    if (!d) return '-';
+    
+    // 문자열에서 YYYY-MM-DD 패턴 추출 (UTC 변환 함정 회피)
+    const s = String(d);
+    const match = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      // "2026-05-15" 형태에서 직접 추출 (Date 객체 거치지 않음)
+      return `${parseInt(match[2], 10)}/${parseInt(match[3], 10)}`;
+    }
+    
+    // 그 외의 경우 Date 객체로 처리하되 NaN 체크
     const date = new Date(d);
-    if (isNaN(date.getTime())) return d;
+    if (isNaN(date.getTime())) return '-';
     return `${date.getMonth()+1}/${date.getDate()}`;
   }
 
