@@ -602,8 +602,8 @@
 
   <!-- 탭 -->
   <div class="tabs">
-    <button class="tab active" onclick="showPage('input')">📝 점수 입력</button>
-    <button class="tab" onclick="showPage('rank')">🏆 순위표</button>
+    <button class="tab active" id="tab-input" onclick="showPage('input')">📝 점수 입력</button>
+    <button class="tab" id="tab-rank" onclick="showPage('rank')">🏆 순위표</button>
   </div>
 
   <!-- 페이지: 점수 입력 -->
@@ -747,7 +747,7 @@
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById('page-' + name).classList.add('active');
-    event.target.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
     if (name === 'rank') loadRanking();
   }
 
@@ -756,16 +756,68 @@
     const toast = document.getElementById('toast');
     toast.textContent = msg;
     toast.className = 'toast show' + (isError ? ' error' : '');
-    setTimeout(() => toast.className = 'toast', 2500);
+    setTimeout(() => toast.className = 'toast', 3000);
+  }
+
+  // 닉네임 정규화: 양쪽 공백 제거 + 연속 공백을 단일 공백으로
+  function normalizeNickname(nick) {
+    return nick.trim().replace(/\s+/g, ' ');
+  }
+
+  // JSONP 방식 호출 (CORS 우회 + 응답 확인 가능)
+  function jsonpCall(url, callbackName) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      const cbName = callbackName + '_' + Date.now();
+      
+      window[cbName] = function(data) {
+        resolve(data);
+        delete window[cbName];
+        script.remove();
+      };
+
+      script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+      script.onerror = () => {
+        reject(new Error('네트워크 오류'));
+        delete window[cbName];
+        script.remove();
+      };
+      
+      // 타임아웃 (10초)
+      setTimeout(() => {
+        if (window[cbName]) {
+          reject(new Error('서버 응답 없음'));
+          delete window[cbName];
+          script.remove();
+        }
+      }, 10000);
+
+      document.body.appendChild(script);
+    });
   }
 
   // 점수 등록
   async function submitScore() {
-    const nickname = document.getElementById('nickname').value.trim();
+    let nickname = document.getElementById('nickname').value;
+    nickname = normalizeNickname(nickname);
     const date = document.getElementById('ride-date').value;
 
+    // 닉네임 검증
     if (!nickname) {
       showToast('닉네임을 입력해 주세요', true);
+      return;
+    }
+    if (nickname.length < 2) {
+      showToast('닉네임은 2자 이상 입력해 주세요', true);
+      return;
+    }
+    if (nickname.length > 20) {
+      showToast('닉네임은 20자 이하로 입력해 주세요', true);
+      return;
+    }
+    // 따옴표·꺽쇠 등 특수문자 차단
+    if (/["'<>{}\\]/.test(nickname)) {
+      showToast('닉네임에 특수문자(" \' < > 등)는 사용 불가', true);
       return;
     }
     if (!selectedType) {
@@ -798,20 +850,24 @@
         date: date
       });
 
-      await fetch(APPS_SCRIPT_URL + '?' + params.toString(), {
-        method: 'GET',
-        mode: 'no-cors'
-      });
+      const result = await jsonpCall(APPS_SCRIPT_URL + '?' + params.toString(), 'addCb');
 
-      showToast(`✓ ${nickname}님 ${selectedPoints}점 등록 완료!`);
-      
-      // 닉네임은 유지, 점수만 초기화
-      document.querySelectorAll('.score-btn').forEach(b => b.classList.remove('selected'));
-      selectedType = null;
-      selectedPoints = 0;
+      if (result.success) {
+        showToast(`✓ ${nickname}님 ${selectedPoints}점 등록 완료!`);
+        // 닉네임은 유지, 점수만 초기화
+        document.querySelectorAll('.score-btn').forEach(b => b.classList.remove('selected'));
+        selectedType = null;
+        selectedPoints = 0;
+        // 닉네임도 정규화된 값으로 갱신 (다음 입력 시 똑같이 사용하도록)
+        document.getElementById('nickname').value = nickname;
+      } else if (result.duplicate) {
+        showToast(`⚠️ 이미 등록된 라이딩입니다 (${date})`, true);
+      } else {
+        showToast('등록 실패: ' + (result.error || '알 수 없는 오류'), true);
+      }
 
     } catch (err) {
-      showToast('등록 실패. 다시 시도해 주세요', true);
+      showToast('등록 실패. 인터넷 연결 확인 후 다시 시도해 주세요', true);
     } finally {
       btn.disabled = false;
       btn.textContent = '🚴 점수 등록하기';
@@ -821,18 +877,17 @@
   // 순위 로드
   async function loadRanking() {
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?action=ranking');
-      const data = await res.json();
+      const data = await jsonpCall(APPS_SCRIPT_URL + '?action=ranking', 'rankCb');
       renderRanking(data);
     } catch (err) {
       document.getElementById('rank-list').innerHTML = 
-        '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div>데이터를 불러올 수 없습니다</div></div>';
+        '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div>데이터를 불러올 수 없습니다<br>잠시 후 다시 시도해 주세요</div></div>';
     }
   }
 
   function renderRanking(data) {
     const list = document.getElementById('rank-list');
-    if (!data || data.length === 0) {
+    if (!data || !Array.isArray(data) || data.length === 0) {
       list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚴</div><div>아직 등록된 라이딩이 없습니다</div></div>';
       return;
     }
@@ -855,18 +910,20 @@
 
   // 내 기록 검색
   document.getElementById('search-nick').addEventListener('input', debounce(async (e) => {
-    const nick = e.target.value.trim();
+    const nick = normalizeNickname(e.target.value);
     if (!nick) {
       document.getElementById('my-stats').style.display = 'none';
       document.getElementById('my-history').innerHTML = '';
       return;
     }
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?action=mine&nickname=' + encodeURIComponent(nick));
-      const data = await res.json();
+      const data = await jsonpCall(APPS_SCRIPT_URL + '?action=mine&nickname=' + encodeURIComponent(nick), 'mineCb');
       renderMyHistory(data, nick);
-    } catch (err) {}
-  }, 400));
+    } catch (err) {
+      document.getElementById('my-stats').style.display = 'none';
+      document.getElementById('my-history').innerHTML = '<div class="empty-state" style="padding:20px"><div>조회 실패. 잠시 후 다시 시도</div></div>';
+    }
+  }, 500));
 
   function renderMyHistory(data, nick) {
     const stats = document.getElementById('my-stats');
@@ -894,6 +951,7 @@
 
   function formatDate(d) {
     const date = new Date(d);
+    if (isNaN(date.getTime())) return d;
     return `${date.getMonth()+1}/${date.getDate()}`;
   }
 
