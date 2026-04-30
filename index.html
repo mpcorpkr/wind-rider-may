@@ -443,6 +443,39 @@
     opacity: 0.4;
   }
 
+  /* 순위표 하단 참여자 수 */
+  .rank-summary {
+    text-align: center;
+    padding: 16px 12px;
+    margin-top: 12px;
+    background: linear-gradient(135deg, rgba(0,184,255,0.08), rgba(0,102,255,0.04));
+    border: 1px dashed rgba(0,102,255,0.25);
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .rank-summary strong {
+    color: var(--accent-blue);
+    font-size: 15px;
+  }
+
+  /* 동점 안내 박스 */
+  .tie-info {
+    background: linear-gradient(135deg, rgba(255,199,0,0.12), rgba(255,199,0,0.04));
+    border: 1px solid rgba(255,199,0,0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .tie-info strong {
+    color: #d4a000;
+  }
+
   /* 내 기록 */
   .history-item {
     display: grid;
@@ -672,6 +705,12 @@
     
     <div class="card">
       <h3 class="card-title">실시간 순위</h3>
+      <div class="tie-info">
+        💡 <strong>동점 시 처리 기준</strong><br>
+        ① 점수 높은 순<br>
+        ② 라이딩 횟수 많은 순<br>
+        ③ 먼저 목표 도달한 사람 (밀리초 단위)
+      </div>
       <button class="refresh-btn" onclick="loadRanking()">🔄 새로고침</button>
       <div class="rank-list" id="rank-list">
         <div class="empty-state">
@@ -892,9 +931,37 @@
       return;
     }
 
-    list.innerHTML = data.map((item, i) => {
-      const rankClass = i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : '';
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1);
+    // 동점 처리: 같은 점수+같은 횟수면 같은 순위로 표시
+    let displayRank = 1;
+    let prevTotal = null;
+    let prevCount = null;
+    let actualPosition = 0;
+
+    const html = data.map((item, i) => {
+      actualPosition++;
+      // 점수와 횟수가 모두 같으면 순위 동일, 그렇지 않으면 실제 위치로
+      if (prevTotal !== item.total || prevCount !== item.count) {
+        displayRank = actualPosition;
+      }
+      prevTotal = item.total;
+      prevCount = item.count;
+
+      // 메달 표시 (1, 2, 3위만)
+      let medal;
+      let rankClass = '';
+      if (displayRank === 1) {
+        medal = '🥇';
+        rankClass = 'top1';
+      } else if (displayRank === 2) {
+        medal = '🥈';
+        rankClass = 'top2';
+      } else if (displayRank === 3) {
+        medal = '🥉';
+        rankClass = 'top3';
+      } else {
+        medal = displayRank;
+      }
+
       return `
         <div class="rank-item ${rankClass}">
           <div class="rank-num">${medal}</div>
@@ -906,6 +973,10 @@
         </div>
       `;
     }).join('');
+
+    // 참여자 수 안내 추가
+    const summary = `<div class="rank-summary">총 <strong>${data.length}명</strong>이 챌린지에 참여 중입니다 🚴‍♂️💨</div>`;
+    list.innerHTML = html + summary;
   }
 
   // 내 기록 검색
