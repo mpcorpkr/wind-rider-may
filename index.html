@@ -1,11 +1,13 @@
 <!DOCTYPE html>
+<!-- VERSION: 2026-05-01-v3-counter-realtime -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<meta name="version" content="2026-05-01-v3">
 <title>바람의 라이더 5월 라이딩 챌린지</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -839,11 +841,11 @@
     </div>
 
     <!-- 방문자 카운터 -->
-    <div class="visitor-box" id="visitor-box" style="display:none">
+    <div class="visitor-box" id="visitor-box">
       <span class="visitor-icon">👥</span>
       <span class="visitor-text">
-        누적 방문 <strong id="visit-total">-</strong>회 ·
-        오늘 <strong id="visit-today">-</strong>명
+        누적 방문 <strong id="visit-total">...</strong>회 ·
+        오늘 <strong id="visit-today">...</strong>명
       </span>
     </div>
 
@@ -1012,34 +1014,93 @@
   
   checkChallengePeriod();
   
-  // 방문자 카운터 (세션당 1회 호출, 실패해도 무시)
-  async function loadVisitorCount() {
-    try {
-      // sessionStorage로 같은 세션 중복 카운트 방지
-      // (세션 = 브라우저 탭 닫을 때까지)
-      const alreadyCounted = sessionStorage.getItem('wr_visited');
-      
-      let url = APPS_SCRIPT_URL + '?action=visit';
-      // 이미 카운트한 세션이면 카운트 증가 없이 조회만 하면 좋겠지만
-      // 단순화를 위해 세션당 1회 호출 + 중복 시 sessionStorage로 차단
-      if (alreadyCounted) {
-        // 이미 카운트했으면 박스 숨김 유지 (다음 방문 시 다시 표시)
-        return;
-      }
-      
-      const data = await jsonpCall(url, 'visitCb');
-      if (data && data.success) {
-        sessionStorage.setItem('wr_visited', '1');
-        document.getElementById('visit-total').textContent = data.total.toLocaleString();
-        document.getElementById('visit-today').textContent = data.today.toLocaleString();
-        document.getElementById('visitor-box').style.display = 'flex';
-      }
-    } catch (err) {
-      // 카운터 실패해도 페이지는 정상 동작 (조용히 무시)
+  // 방문자 카운터 (강화 버전 - 페이지 로드 즉시 표시 + 디버깅 가능)
+  function loadVisitorCount() {
+    console.log('[방문자] 카운터 호출 시작');
+    
+    const box = document.getElementById('visitor-box');
+    const totalEl = document.getElementById('visit-total');
+    const todayEl = document.getElementById('visit-today');
+    
+    if (!box || !totalEl || !todayEl) {
+      console.log('[방문자] DOM 요소를 찾을 수 없음');
+      return;
     }
+    
+    // 1. 박스 먼저 표시 (로딩 표시)
+    totalEl.textContent = '...';
+    todayEl.textContent = '...';
+    box.style.display = 'flex';
+    console.log('[방문자] 박스 표시 완료');
+    
+    // 2. JSONP 호출 (충돌 방지 - 고유 콜백명)
+    const cbName = 'visitCb_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
+    const url = APPS_SCRIPT_URL + '?action=visit&callback=' + cbName + '&t=' + Date.now();
+    console.log('[방문자] 요청 URL:', url);
+    
+    let resolved = false;
+    
+    // 3. 콜백 정의
+    window[cbName] = function(data) {
+      if (resolved) return;
+      resolved = true;
+      console.log('[방문자] 응답 받음:', data);
+      
+      try {
+        if (data && data.success) {
+          totalEl.textContent = (data.total || 0).toLocaleString();
+          todayEl.textContent = (data.today || 0).toLocaleString();
+          console.log('[방문자] 카운트 표시 완료:', data.total, '/', data.today);
+        } else {
+          // 응답 왔는데 success가 false인 경우
+          totalEl.textContent = '?';
+          todayEl.textContent = '?';
+          console.log('[방문자] 응답 실패:', data);
+        }
+      } catch (e) {
+        console.log('[방문자] 처리 오류:', e);
+      }
+      
+      // 정리
+      delete window[cbName];
+      const script = document.getElementById(cbName);
+      if (script) script.remove();
+    };
+    
+    // 4. script 태그 삽입
+    const script = document.createElement('script');
+    script.id = cbName;
+    script.src = url;
+    script.onerror = function() {
+      if (resolved) return;
+      resolved = true;
+      console.log('[방문자] 네트워크 오류');
+      totalEl.textContent = '-';
+      todayEl.textContent = '-';
+      delete window[cbName];
+      script.remove();
+    };
+    
+    document.head.appendChild(script);
+    
+    // 5. 타임아웃 (10초)
+    setTimeout(function() {
+      if (resolved) return;
+      resolved = true;
+      console.log('[방문자] 타임아웃');
+      totalEl.textContent = '-';
+      todayEl.textContent = '-';
+      if (window[cbName]) delete window[cbName];
+      if (script.parentNode) script.remove();
+    }, 10000);
   }
   
-  loadVisitorCount();
+  // 페이지 로드 후 호출 (DOM 준비 보장)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadVisitorCount);
+  } else {
+    loadVisitorCount();
+  }
 
   // 점수 버튼 선택
   let selectedType = null;
@@ -1055,12 +1116,24 @@
   });
 
   // 페이지 전환
+  let rankAutoRefreshTimer = null;
   function showPage(name) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById('page-' + name).classList.add('active');
     document.getElementById('tab-' + name).classList.add('active');
-    if (name === 'rank') loadRanking();
+    
+    // 이전 자동 갱신 타이머 정리
+    if (rankAutoRefreshTimer) {
+      clearInterval(rankAutoRefreshTimer);
+      rankAutoRefreshTimer = null;
+    }
+    
+    if (name === 'rank') {
+      loadRanking();
+      // 순위표 화면에서는 30초마다 자동 갱신 (사용자가 새로고침 안 눌러도 최신 유지)
+      rankAutoRefreshTimer = setInterval(loadRanking, 30000);
+    }
   }
 
   // 토스트
@@ -1246,6 +1319,8 @@
         selectedPoints = 0;
         // 닉네임도 정규화된 값으로 갱신 (다음 입력 시 똑같이 사용하도록)
         document.getElementById('nickname').value = nickname;
+        // 순위표 미리 백그라운드 갱신 (사용자가 순위표 탭 클릭 시 즉시 최신 데이터 보임)
+        loadRanking();
       } else if (result.duplicate) {
         showToast(`⚠️ 이미 등록된 라이딩입니다 (${date})`, true);
       } else {
@@ -1264,7 +1339,9 @@
   // 순위 로드
   async function loadRanking() {
     try {
-      const data = await jsonpCall(APPS_SCRIPT_URL + '?action=ranking', 'rankCb');
+      // 캐시 우회: 매번 다른 t 파라미터로 새 데이터 강제 요청
+      const url = APPS_SCRIPT_URL + '?action=ranking&t=' + Date.now();
+      const data = await jsonpCall(url, 'rankCb');
       renderRanking(data);
     } catch (err) {
       document.getElementById('rank-list').innerHTML = 
