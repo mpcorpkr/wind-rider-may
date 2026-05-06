@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-05-01-v3-counter-realtime -->
+<!-- VERSION: 2026-05-01-v4-bara-notice -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -743,6 +743,38 @@
     color: var(--accent-pink);
   }
 
+  /* 바라 라이딩 안내 박스 (친근한 톤) */
+  .bara-notice {
+    margin-bottom: 14px;
+    padding: 16px 18px;
+    background: linear-gradient(135deg, #fff8e1, #fff3cd);
+    border: 2px solid #ffc107;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+    text-align: center;
+    animation: gentle-pulse 3s ease-in-out infinite;
+  }
+
+  .bara-notice-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 17px;
+    color: #d97706;
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+  }
+
+  .bara-notice-body {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  @keyframes gentle-pulse {
+    0%, 100% { box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2); }
+    50% { box-shadow: 0 4px 16px rgba(255, 193, 7, 0.4); }
+  }
+
   /* 방문자 카운터 박스 */
   .visitor-box {
     display: flex;
@@ -829,8 +861,16 @@
   <!-- 페이지: 점수 입력 -->
   <div class="page active" id="page-input">
     
+    <div class="bara-notice">
+      <div class="bara-notice-title">⚡ 바라 라이딩 참여시에만 입력해 주세요!</div>
+      <div class="bara-notice-body">
+        새라(월~금) · 야라(화·목) · 주라(주말 모임)
+      </div>
+    </div>
+    
     <div class="warning-box">
       <strong class="title">⚠️ 입력 전 꼭 확인하세요</strong>
+      • <strong>바라 라이딩 참여시에만</strong> 입력해 주세요! 🚴‍♂️<br><br>
       • 한 번 등록한 점수는 <strong>수정·삭제가 불가</strong>합니다.<br>
       &nbsp;&nbsp;&nbsp;잘못 누르신 경우 해당 라이딩은 <strong>한 번 더 직접 라이딩</strong>으로 채우셔야 합니다.<br><br>
       • 닉네임은 <strong>매번 똑같이</strong> 써주세요!<br>
